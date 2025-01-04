@@ -3,6 +3,7 @@ $\newcommand\Lr[1]{\left[#1\right]}$
 $\newcommand\LR[1]{\left\{#1\right\}}$
 $\newcommand\abs[1]{\left\vert #1 \right\vert}$
 $\newcommand\Exp[1]{\exp\lr{#1}}$
+$\newcommand\Floor[1]{\left\lfloor#1\right\rfloor}$
 
 # Using `fft` correctly
 
@@ -16,8 +17,8 @@ Here $t$ is time measured in second (or s for short) and $f$ is measured in Hz.
 The two functions $h$ and $H$ can be converted back and forth using Fourier transforms:
 $$
 \begin{align}
-  H\lr{f} & = \int_{-\infty}^{+\infty} h\lr{t} \Exp{2\pi \jmath f t} dt,  \\
-  h\lr{t} & = \int_{-\infty}^{+\infty} H\lr{f} \Exp{-2\pi \jmath f t} df.
+  H\lr{f} & = \int_{-\infty}^{+\infty} h\lr{t} \Exp{-2\pi \jmath f t} dt,  \\
+  h\lr{t} & = \int_{-\infty}^{+\infty} H\lr{f} \Exp{2\pi \jmath f t} df.
 \end{align}
 $$
 Such conversion is denoted as $h\lr{t} \Leftrightarrow H\lr{f}$ and some of its properties are
@@ -61,10 +62,10 @@ $$
 The time interval $\Delta t$ is called the sampling rate.  
 
 ### Sampling theorem
-Denote $f_c := \dfrac{1}{\Delta t}$ Nyquist critical frequency.
+Denote $f_c := \dfrac{1}{2 \Delta t}$ Nyquist critical frequency.
 Sampling theorem says that if a continuous function $h\lr{t}$, sampled at an interval $\Delta t$,
 happens to be __bandwidth limited__ to frequencies strictly smaller in magnitude than $f_c$
-(aka $H\lr{f} = 0$ for all $\abs(f) \geqslant f_c$), then the function $h\lr{t}$ is completely
+(aka $H\lr{f} = 0$ for all $\abs{f} \geqslant f_c$), then the function $h\lr{t}$ is completely
 determined by its samples $h_n$.
 
 In fact, $h\lr{t}$ is given explicitly by the formula
@@ -75,38 +76,43 @@ $$
 
 ### Discrete Fourier transform
 
-Suppose that we have $N$ consecutive sampled values 
+Suppose that we have $N$ values sampled consecutively at sampling frequency $F_s = \dfrac{1}{\Delta t}$:
 $$
   h_k = h\lr{t_k = k \Delta t}, \qquad k = 0, \dots, N - 1.
 $$
-Let us seek estimations of Fourier transform $H\lr{f}$ only at the discrete values
+To make think simpler, we assume that $N = F_s$, aka., we sample only one period of sampling process.
+According to sampling theorem, if $F_s$ is big enough, one can reasonably estimate $H\lr{f}$ for
+all $\abs{f} < \dfrac{1}{2} F_s$. Therefore, it is plausible to seek estimations of Fourier transform 
+$H\lr{f}$ only at the discrete values
 $$
-  f_n = \dfrac{n}{N \Delta t} =: \dfrac{n}{N} F_s, \qquad n = -\dfrac{N}{2}, \dots, \dfrac{N}{2}.
+  f_m := \dfrac{m}{N \Delta t} = \dfrac{m}{N} F_s, \qquad m = -M, \dots, M, 
+  \qquad M := \Floor{\dfrac{N}{2}}.
 $$
-Here $F_s := \dfrac{1}{\Delta t}$ is called sampling frequency.
-Then $H\lr{f_n}$ is approximated by
+Then $H\lr{f_m}$ is approximated by
 $$
-  H\lr{f_n} = \int_{-\infty}^{+\infty} h\lr{t} \Exp{2 \pi \jmath f_n t} dt
-  \approx \Delta t \sum_{k = 0}^{N - 1} h_k \Exp{2 \pi \jmath t_k f_n}
+\begin{align*}
+  H\lr{f_m} 
+  & = \int_{-\infty}^{+\infty} h\lr{t} \Exp{-2 \pi \jmath f_m t} dt \\
+  & \approx \Delta t \sum_{k = 0}^{N - 1} h_k \Exp{-2 \pi \jmath t_k f_m}, 
+    \qquad m = -M, \dots, M.
+\end{align*}
 $$
-Let us denote $H_n := \sum_{k = 0}^{N - 1} h_k \Exp{2 \pi \jmath \dfrac{k n}{N}}$
-and call it as the discrete Fourier transformation of the $N$ points $\LR{h_k}$.
-From the formula of $H_n$, we have $H_{n}$ is periodic in $n$ with period $N$,
-$H_{-n} = H_{N - n}$ and hence $H_{-\frac{N}{2}} = H_{\frac{N}{2}}$.
-With such properties we can shift $n$ from range $\Lr{-\dfrac{N}{2}, \dfrac{N}{2}}$
-to range $\Lr{0, N - 1}$ with the __convention__:
 
-* zero frequency corresponds to $n = 0$,
-* positive frequencies $0 < f < f_c$ correspond to $1 \leqslant n \leqslant \dfrac{N}{2} - 1$,
-* negative frequencies $-f_c < f < 0$ correspond to $\dfrac{N}{2} + 1 \leqslant n \leqslant N - 1$,
-* the value $n = \dfrac{N}{2}$ corresponds to _both_ frequencies $-f_c$ and $f_c$.
+Let us denote __discrete Fourier transform__ of $N$ points $\LR{h_n}$ as
+$$
+  H_n := \sum_{k = 0}^{N - 1} h_k \Exp{-2 \pi \jmath \dfrac{k n}{N}}, \quad n = 0, \dots, N - 1.
+$$
+We will see how array $\LR{H_n, n = 0, \dots, N - 1}$ approximate $\LR{H\lr{f_m}, m = -M, \dots, M}$.
+From the formula of $H_n$, we see that 
 
-Similarly, the formula for the discrete inverse Fourier transform which recovers
-the set of $\LR{h_k}$ exactly from the $\LR{H_n}$ is
-$$
-  h_k = \dfrac{1}{N} \sum_{n = 0}^{N - 1} H_n \Exp{-2 \pi \jmath \dfrac{k n}{N}}.
-$$
-Hence, the discrete form of Parseval's theorem is
-$$
-  \sum_{k = 0}^{N - 1} \abs{h_k}^2 = \dfrac{1}{N} \sum_{n = 0}^{N - 1} \abs{H_n}^2.
-$$
+* For $n = 0, \dots, M$: $\colorbox{yellow}{$\Delta t H_n \approx H\lr{f_n}$}$.
+* $H_{n}$ is periodic in $n$ with period $N$ aka. $\colorbox{orange}{$H_{-n} = H_{N - n}$}$.
+  It means that $\colorbox{yellow}{$H\lr{f_{-m}} \approx \Delta t H_{N - m}$}$ for $m = 1, \dots, M$.
+
+With such observation, we have:
+* For $m = 0, \dots, M$: $H\lr{f_m} \approx \Delta t H_m$.
+* For $m = -M, \dots, -1$: $H\lr{f_m} \approx \Delta t H_{N + m} =: \Delta t H_n$ for $n = N - M, \dots, N - 1$.
+* For $n = 0, \dots, M$: $H_n \approx F_s H\lr{f_n}$.
+* For $n = M + 1, \dots, N - 1$: $H_n \approx F_s H\lr{f_{-N + n}} = F_s H\lr{-f_{N - n}}$ 
+  ($ = F_s H\lr{f_{N - n}} \approx H_{N - n}$ in case of real $h\lr{t}$).
+
